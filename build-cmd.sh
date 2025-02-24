@@ -81,6 +81,37 @@ pushd "$SOURCE_DIR"
             cp -a $stage/lib/libSDL3.so* $stage/lib/release
             cp -a $stage/lib/libSDL3*.a $stage/lib/release
         ;;
+        darwin*)
+            export MACOSX_DEPLOYMENT_TARGET="$LL_BUILD_DARWIN_DEPLOY_TARGET"
+
+            for arch in x86_64 arm64 ; do
+                ARCH_ARGS="-arch $arch"
+                cxx_opts="${TARGET_OPTS:-$ARCH_ARGS $LL_BUILD_RELEASE}"
+                cc_opts="$(remove_cxxstd $cxx_opts)"
+                cc_opts="$(remove_switch -stdlib=libc++ $cc_opts)"
+                ld_opts="$ARCH_ARGS"
+
+                mkdir -p "build_$arch"
+                pushd "build_$arch"
+                    CFLAGS="$cc_opts" \
+                    CXXFLAGS="$cxx_opts" \
+                    LDFLAGS="$ld_opts" \
+                    cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Release \
+                        -DCMAKE_C_FLAGS:STRING="$cc_opts" \
+                        -DCMAKE_CXX_FLAGS:STRING="$cxx_opts" \
+                        -DCMAKE_OSX_ARCHITECTURES="$arch" \
+                        -DCMAKE_INSTALL_PREFIX=$stage \
+                        -DCMAKE_INSTALL_LIBDIR="$stage/lib/release/$arch" \
+                        -DCMAKE_OSX_DEPLOYMENT_TARGET=${MACOSX_DEPLOYMENT_TARGET} \
+                        -D SDL_STATIC=ON
+
+                    cmake --build . --config Release -j$AUTOBUILD_CPU_COUNT
+                    cmake --install . --config Release
+                popd
+            done
+
+            lipo -create -output ${stage}/lib/release/libSDL3.a ${stage}/lib/release/x86_64/libSDL3.a ${stage}/lib/release/arm64/libSDL3.a
+        ;;
     esac
     
     mkdir -p $stage/LICENSES
