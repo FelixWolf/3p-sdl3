@@ -48,6 +48,8 @@ build=${AUTOBUILD_BUILD_ID:=0}
 pushd "$SOURCE_DIR"
     mkdir -p "$stage/lib/release"
     mkdir -p "$stage/include/SDL3"
+    mkdir -p "$stage/LICENSES"
+    
     case "$AUTOBUILD_PLATFORM" in
         linux*)
             # Default target per --address-size
@@ -79,6 +81,8 @@ pushd "$SOURCE_DIR"
             
             cp -a $stage/lib/libSDL3.so* $stage/lib/release
             cp -a $stage/lib/libSDL3*.a $stage/lib/release
+            
+            cp "$stage/share/licenses/SDL3/LICENSE.txt" "$stage/LICENSES/SDL3.txt"
         ;;
         windows*)
             load_vsvars
@@ -88,8 +92,6 @@ pushd "$SOURCE_DIR"
             mkdir -p "build_debug"
             pushd "build_debug"
                 cmake .. -G"$AUTOBUILD_WIN_CMAKE_GEN" -DCMAKE_BUILD_TYPE=None \
-                    -DCMAKE_C_FLAGS:STRING="$plainopts" \
-                    -DCMAKE_CXX_FLAGS:STRING="$opts" \
                     -DCMAKE_INSTALL_PREFIX=$(cygpath -m $stage)/debug \
                     -D SDL_STATIC=ON \
                     -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
@@ -105,8 +107,6 @@ pushd "$SOURCE_DIR"
             mkdir -p "build_release"
             pushd "build_release"
                 cmake .. -G"$AUTOBUILD_WIN_CMAKE_GEN" -DCMAKE_BUILD_TYPE=None \
-                    -DCMAKE_C_FLAGS:STRING="$plainopts" \
-                    -DCMAKE_CXX_FLAGS:STRING="$opts" \
                     -DCMAKE_INSTALL_PREFIX=$(cygpath -m $stage)/release \
                     -D SDL_STATIC=ON \
                     -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
@@ -117,7 +117,10 @@ pushd "$SOURCE_DIR"
 
                 cp $stage/release/bin/*.dll $stage/lib/release/
                 cp $stage/release/lib/*.lib $stage/lib/release/
+                cp $stage/release/include/SDL3/*.h $stage/include/SDL3/
             popd
+            
+            cp "$stage/release/licenses/SDL3/LICENSE.txt" "$stage/LICENSES/SDL3.txt"
         ;;
         darwin*)
             export MACOSX_DEPLOYMENT_TARGET="$LL_BUILD_DARWIN_DEPLOY_TARGET"
@@ -149,9 +152,9 @@ pushd "$SOURCE_DIR"
             done
 
             lipo -create -output ${stage}/lib/release/libSDL3.a ${stage}/lib/release/x86_64/libSDL3.a ${stage}/lib/release/arm64/libSDL3.a
+            
+            cp "$stage/share/licenses/SDL3/LICENSE.txt" "$stage/LICENSES/SDL3.txt"
         ;;
     esac
     
-    mkdir -p $stage/LICENSES
-    cp "$stage/share/licenses/SDL3/LICENSE.txt" "$stage/LICENSES/SDL3.txt"
 popd
